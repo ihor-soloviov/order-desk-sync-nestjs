@@ -1,33 +1,30 @@
 import { Injectable, Logger } from '@nestjs/common';
-import axios, { AxiosResponse } from 'axios';
+import axios from 'axios';
 import { Address } from './address/address.provider';
-import { Order } from './types';
-import * as moment from 'moment';
+import { Order, Time, Data } from './types';
+import { format } from 'date-fns';
 
 @Injectable()
 export class OrderDeskService {
   private readonly logger = new Logger(OrderDeskService.name);
   constructor(private addressService: Address) {}
 
-  apiKey = 'UtFSGa4gkqoCgkyXowthHhCLq9mioQNQLBu7nvgzAskcG7Eoot';
-  storeId = 52114;
-
-  async fetchNewOrders(): Promise<AxiosResponse> {
+  async fetchNewOrders(): Promise<Array<Order>> {
     try {
       const headers = {
-        'ORDERDESK-STORE-ID': this.storeId,
-        'ORDERDESK-API-KEY': this.apiKey,
+        'ORDERDESK-STORE-ID': process.env.STORE_ID,
+        'ORDERDESK-API-KEY': process.env.API_KEY,
         'Content-Type': 'application/json',
       };
 
-      const response = await axios.get(
+      const { data } = await axios.get<Data>(
         'https://app.orderdesk.me/api/v2/orders?order=desc',
         {
           headers,
         },
       );
 
-      return response;
+      return data.orders;
     } catch (error) {
       this.logger.error(error);
     }
@@ -35,18 +32,24 @@ export class OrderDeskService {
 
   logOrders(orders: Array<Order>) {
     for (const order of orders) {
-      this.addressService.allAddressesLine(order);
+      this.addressService.logShippingMessage(order);
     }
   }
 
-  async logNewOrders(orders: Array<Order>, date: Date) {
-    const newOrders = (await this.fetchNewOrders()).data.orders;
-    const lastUpdatingTime = moment(date).format('YYYY-MM-DD HH:mm:ss');
+  async logNewOrders(time: Time) {
+    try {
+      const newOrders = await this.fetchNewOrders();
+      const lastUpdatingTime = format(time.date, 'yyyy-MM-dd HH:mm:ss');
 
-    for (const order of newOrders) {
-      if (order.date_added > lastUpdatingTime) {
-        this.addressService.allAddressesLine(order);
+      for (const order of newOrders) {
+        if (order.date_added > lastUpdatingTime) {
+          this.addressService.logShippingMessage(order);
+          time.date = new Date(Date.now() - 3 * 60 * 60 * 1000);
+          //дата підібрана за часом системи замовлень Order Desc
+        }
       }
+    } catch (error) {
+      console.error(error);
     }
   }
 }

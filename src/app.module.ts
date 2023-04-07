@@ -1,25 +1,28 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ConfigModule } from '@nestjs/config';
 import { OrderDeskService } from './orderdesk.service';
 import { Address } from './address/address.provider';
 
 @Module({
-  imports: [ScheduleModule.forRoot()],
+  imports: [ConfigModule.forRoot(), ScheduleModule.forRoot()],
   providers: [OrderDeskService, Address],
 })
 export class AppModule {
   constructor(private readonly orderDeskService: OrderDeskService) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    const date = new Date(Date.now() - 7 * 60 * 60 * 1000);
-    const response = await this.orderDeskService.fetchNewOrders();
-    const orders = response.data.orders;
+    try {
+      const time = {
+        date: new Date(Date.now() - 3 * 60 * 60 * 1000),
+      };
+      const orders = await this.orderDeskService.fetchNewOrders();
+      // await this.orderDeskService.fetchNewOrders();
 
-    this.orderDeskService.logOrders(orders);
-    setInterval(
-      () => this.orderDeskService.logNewOrders(orders, date),
-      //для тесту поставив таймінг у 2 хвилини, щоб встигнути зробити нове замовлення. по завдання цей скрипт спрацьовує раз на годину
-      120 * 1000,
-    );
+      this.orderDeskService.logOrders(orders);
+      setInterval(() => this.orderDeskService.logNewOrders(time), 1000);
+    } catch (error) {
+      console.error(error);
+    }
   }
 }
