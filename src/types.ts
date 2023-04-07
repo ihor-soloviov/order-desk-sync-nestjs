@@ -8,7 +8,16 @@ interface Shipping {
   city: string;
 }
 
+export interface Data {
+  orders: Array<Order>;
+}
+
 export interface Order {
   shipping: Shipping;
   id: number;
+  date_added: string;
+}
+
+export interface Time {
+  date: Date;
 }
