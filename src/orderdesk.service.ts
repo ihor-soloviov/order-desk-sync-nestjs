@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
-import { Address } from './address/address.provider';
+import { Address } from './message/message.provider';
 import { Order, Time, Data } from './types';
 import { format } from 'date-fns';
 
@@ -45,7 +45,6 @@ export class OrderDeskService {
         if (order.date_added > lastUpdatingTime) {
           this.addressService.logShippingMessage(order);
           time.date = new Date(Date.now() - 3 * 60 * 60 * 1000);
-          //дата підібрана за часом системи замовлень Order Desc
         }
       }
     } catch (error) {
