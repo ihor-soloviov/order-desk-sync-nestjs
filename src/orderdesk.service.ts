@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import { Address } from './address/address.provider';
+import { Order } from './types';
+import * as moment from 'moment';
 
 @Injectable()
 export class OrderDeskService {
@@ -10,7 +12,7 @@ export class OrderDeskService {
   apiKey = 'UtFSGa4gkqoCgkyXowthHhCLq9mioQNQLBu7nvgzAskcG7Eoot';
   storeId = 52114;
 
-  async fetchNewOrders(): Promise<void> {
+  async fetchNewOrders(): Promise<AxiosResponse> {
     try {
       const headers = {
         'ORDERDESK-STORE-ID': this.storeId,
@@ -19,14 +21,32 @@ export class OrderDeskService {
       };
 
       const response = await axios.get(
-        'https://app.orderdesk.me/api/v2/orders/new',
+        'https://app.orderdesk.me/api/v2/orders?order=desc',
         {
           headers,
         },
       );
-      this.addressService.allAddressesLine(response);
+
+      return response;
     } catch (error) {
       this.logger.error(error);
+    }
+  }
+
+  logOrders(orders: Array<Order>) {
+    for (const order of orders) {
+      this.addressService.allAddressesLine(order);
+    }
+  }
+
+  async logNewOrders(orders: Array<Order>, date: Date) {
+    const newOrders = (await this.fetchNewOrders()).data.orders;
+    const lastUpdatingTime = moment(date).format('YYYY-MM-DD HH:mm:ss');
+
+    for (const order of newOrders) {
+      if (order.date_added > lastUpdatingTime) {
+        this.addressService.allAddressesLine(order);
+      }
     }
   }
 }

@@ -11,4 +11,5 @@ interface Shipping {
 export interface Order {
   shipping: Shipping;
   id: number;
+  date_updated: string;
 }
